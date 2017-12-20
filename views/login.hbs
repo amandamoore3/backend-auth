@@ -1,6 +1,8 @@
 
 {{> header}}
 {{> nav}}
+
+<h1>{{title}}</h1>
 {{#if errors}}
   {{#each errors}}
     {{msg}}
@@ -11,11 +13,7 @@
     <label for="username">Username</label>
     <input name='username' type="text" class="form-control" id="username" placeholder="Username">
   </div>
-  <div class="form-group">
-    <label for="exampleInputEmail1">Email address</label>
-    <input name="email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
 
-  </div>
   <div class="form-group">
     <label for="exampleInputPassword2">Password</label>
     <input name='password' type="password" class="form-control" id="exampleInputPassword2" placeholder="Password">
