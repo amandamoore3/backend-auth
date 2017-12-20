@@ -1,0 +1,25 @@
+.navBar {
+  text-align: center;
+  margin: 0 auto;
+  align-items: center;
+  text-decoration: none;
+}
+
+.registerForm {
+  max-width: 60% !important;
+  margin: 3em;
+}
+
+nav {
+  display: flex;
+}
+
+.navLink {
+  margin: 1em;
+  flex: 2;
+}
+
+body {
+  max-width: 80%;
+  margin: auto;
+}
