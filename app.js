@@ -38,8 +38,20 @@ passport.use(new LocalStrategy(function(username, password, done) {
     if (results.length === 0) {
       done(null, false)
     }
-    const hash = results[0];
-    done(null, true)
+    const hash = results[0].password.toString();
+    console.log(hash);
+    // console.log(password);
+    bcrypt.compare(password, hash, function(err, res) {
+      console.log(res);
+      if (res === true) {
+        done(null, {
+          user_id: results[0].id
+        })
+      } else {
+        done(null, false)
+      }
+    })
+    // done(null, true)
   });
 }));
 app.use(passport.initialize());
@@ -62,7 +74,8 @@ app.get('/register', function(req, res) {
 
 app.get('/profile', function(req, res) {
   res.render('profile', {
-    title: 'This is the profile'
+    title: 'This is the profile',
+    user: req.user.user._id
   })
 });
 
@@ -148,6 +161,6 @@ passport.deserializeUser(function(id, done) {
   done(null, id)
 });
 
-app.listen(3004, () => {
-  console.log('listening on port 3001');
+app.listen(3000, () => {
+  console.log('listening on port 3000');
 });
