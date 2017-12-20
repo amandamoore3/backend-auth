@@ -1,11 +1,17 @@
 
 {{> header}}
 {{> nav}}
-<h1>{{title}}</h1> 
+<h1>{{title}}</h1>
 {{#if errors}}
   {{#each errors}}
     {{msg}}
   {{/each}}
+{{/if}}
+{{#if error}}
+
+    {{msg}}
+    {{error}}
+
 {{/if}}
 <form class="registerForm" method="POST" action= "/register">
   <div class="form-group">

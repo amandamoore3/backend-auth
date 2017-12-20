@@ -6,8 +6,9 @@ const bodyParser = require('body-parser');
 const {
   check,
   validationResult
-} = require('express-validator/check')
-
+} = require('express-validator/check');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const db = require('./db/db')
 
 let app = express();
@@ -32,7 +33,11 @@ app.get('/register', function(req, res) {
   })
 });
 
-
+app.get('/profile', function(req, res) {
+  res.render('profile', {
+    title: 'This is the profile'
+  })
+});
 
 
 app.post('/register', [
@@ -47,7 +52,7 @@ app.post('/register', [
     min: 8,
     max: 30
   }).withMessage('Password must be between 8-100 characters.'),
-  check("password").matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.* )(?=.*[^a-zA-Z0-9]).{8,}$/, "i").withMessage("Password must contain one lowercase character, one uppercase character, a number, and a special character."), check('passwordVerify').isLength({
+  check('username').matches(/^[a-zA-Z0-9]([a-zA-Z0-9_])+$/i).withMessage('Username can contain letters, numbers, or underscores.'), check('passwordVerify').isLength({
     min: 8,
     max: 100
   }).withMessage('Password must be between 8-100 characters long.'),
@@ -59,7 +64,7 @@ app.post('/register', [
   if (!err.isEmpty()) {
     console.log(err.mapped());
     res.render('register', {
-      title: "Registration failed",
+      msg: "Registration failed",
       errors: err.array()
     })
   } else {
@@ -67,15 +72,31 @@ app.post('/register', [
     console.log(req.body);
     let username = req.body.username,
       email = req.body.email,
-      password = req.body.password,
-      passwordVerify = req.body.passwordVerify
-    db.query('INSERT INTO users (username, email, password) VALUES (? , ?, ?)', [username, email, password], function(err, results, fields) {
-      if (err) {
-        res.send('There was a registration error.');
-        return
-      }
-      console.log(results);
-      res.send('worked')
+      password = req.body.password
+
+    bcrypt.hash(password, saltRounds, function(err, hash) {
+      db.query('INSERT INTO users (username, email, password) VALUES (? , ?, ?)', [username, email, hash], function(err, results, fields) {
+        if (err) {
+          if (err.code === 'ER_DUP_ENTRY') {
+            res.render('register', {
+              msg: "Registration failed.  See the reasons below.",
+              error: "Username or email is already taken"
+            })
+          } else {
+            res.render('register', {
+              msg: "Registration failed.  See the reasons below.",
+              error: "Error but not sure what it was.  Good luck."
+            })
+          }
+          // console.log(err.code);
+          // res.send('Error in registration');
+          // return
+        } else {
+          console.log(results);
+          res.send('user added')
+        }
+
+      });
     });
   }
 })
