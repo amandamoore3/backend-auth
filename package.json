@@ -11,8 +11,11 @@
   "dependencies": {
     "bcrypt": "^1.0.3",
     "body-parser": "^1.18.2",
+    "c": "^0.1.0",
+    "connect-flash": "^0.1.1",
     "cookie-parser": "^1.4.3",
     "express": "^4.16.2",
+    "express-mysql-session": "^1.2.3",
     "express-session": "^1.15.6",
     "express-validator": "^4.3.0",
     "hbs": "^4.0.1",

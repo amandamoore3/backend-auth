@@ -1,10 +1,13 @@
-'use strict'
+// 'use strict'
 
 const express = require('express');
+
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 
 const hbs = require('hbs');
 const bodyParser = require('body-parser');
+const flash = require('connect-flash');
 const {
   check,
   validationResult
@@ -25,35 +28,53 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: false
 }));
+
+const options = {
+  host: 'localhost',
+  port: 3306,
+  user: 'root',
+  password: 'Mustang1',
+  database: 'backend-auth'
+};
+
+
+
+const sessionStore = new MySQLStore(options);
 app.use(session({
   secret: 'iwendapoiddnt',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  store: sessionStore
 }))
 passport.use(new LocalStrategy(function(username, password, done) {
   db.query('SELECT id, password FROM users WHERE username=?', username, function(err, results, fields) {
     if (err) {
       done(err, false)
+    } else if (results.length === 0) {
+      done(null, false, {
+        message: 'Username and password do not match.'
+      })
+    } else {
+      const hash = results[0].password.toString();
+      console.log(hash);
+      // console.log(password);
+      bcrypt.compare(password, hash, function(err, res) {
+        console.log(res);
+        if (res === true) {
+          done(null, {
+            user_id: results[0].id
+          })
+        } else {
+          done(null, false)
+        }
+      })
     }
-    if (results.length === 0) {
-      done(null, false)
-    }
-    const hash = results[0].password.toString();
-    console.log(hash);
-    // console.log(password);
-    bcrypt.compare(password, hash, function(err, res) {
-      console.log(res);
-      if (res === true) {
-        done(null, {
-          user_id: results[0].id
-        })
-      } else {
-        done(null, false)
-      }
-    })
+
     // done(null, true)
   });
 }));
+
+app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -72,17 +93,36 @@ app.get('/register', function(req, res) {
   })
 });
 
-app.get('/profile', function(req, res) {
-  res.render('profile', {
-    title: 'This is the profile',
-    user: req.user.user._id
-  })
+app.get('/profile', isAuthenticatedMiddleware(), function(req, res) {
+  console.log(req.user);
+  console.log(req.isAuthenticated());
+  db.query('SELECT * FROM users WHERE id=?', req.user.user_id,
+
+    function(err, results, fields) {
+      let username = results[0].username,
+        email = results[0].email
+
+      res.render('profile', {
+        title: 'This is the profile',
+        user: req.user.user_id,
+        username: username,
+        email: email
+
+      })
+    });
 });
 
 app.post('/login', passport.authenticate('local', {
   successRedirect: '/profile',
-  failureRedirect: '/login'
+  failureRedirect: '/login',
+  failureFlash: true
 }));
+
+app.get('/logout', (req, res) => {
+  req.logout();
+  req.session.destroy();
+  res.redirect('/login');
+});
 
 
 app.post('/register', [
@@ -114,7 +154,7 @@ app.post('/register', [
     })
   } else {
 
-    console.log(req.body);
+    // console.log(req.body);
     let username = req.body.username,
       email = req.body.email,
       password = req.body.password
@@ -137,18 +177,29 @@ app.post('/register', [
           // res.send('Error in registration');
           // return
         } else {
-          console.log(results);
-          res.send('user added')
+          db.query('SELECT LAST_INSERT_ID() as user', function(err, results, fields) {
+            if (err) {
+              res.send('There is a database issue')
+            } else {
+              console.log(results[0]);
+              req.login(results[0], function(err) {
+                res.redirect('/profile')
+              })
+            }
+          })
+          // console.log(results);
+          // res.send('user added')
         }
 
       });
     });
   }
-})
+});
 
 app.get('/login', function(req, res) {
   res.render('login', {
-    title: 'Login here'
+    title: 'Login here',
+    message: req.flash('error')
   })
 });
 
@@ -160,6 +211,16 @@ passport.serializeUser(function(user, done) {
 passport.deserializeUser(function(id, done) {
   done(null, id)
 });
+
+function isAuthenticatedMiddleware() {
+  return (req, res, next) => {
+    if (req.isAuthenticated()) {
+      next()
+    } else {
+      res.direct('/login')
+    }
+  }
+}
 
 app.listen(3000, () => {
   console.log('listening on port 3000');
